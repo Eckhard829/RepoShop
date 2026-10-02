@@ -1,0 +1,78 @@
+/* Navbar theme: neon-cyan rim, dark pills, floats over every page */
+.pill-nav-container {
+  position: fixed;
+  top: 0.8rem;
+  z-index: 250;
+}
+.pill-nav-items {
+  box-shadow:
+    0 0 0 1px #00d9ff88,
+    0 8px 30px #00d9ff33;
+}
+.pill {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+.pill-logo {
+  box-shadow: 0 0 18px #00d9ff77;
+}
+.mobile-menu-popover {
+  box-shadow:
+    0 12px 40px #000c,
+    0 0 30px #00d9ff33;
+  z-index: 260;
+}
+.mobile-menu-popover .mobile-menu-link {
+  font-weight: 600;
+}
+
+.nav-prog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 300;
+  pointer-events: none;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #00d9ff, #7c5cff);
+  box-shadow: 0 0 10px #00d9ff;
+}
+
+/* Floating buy button, desktop only (mobile has Sign up in the menu) */
+.nav-cta {
+  position: fixed;
+  top: 0.8rem;
+  right: 1rem;
+  z-index: 250;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 1.2rem;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.nav-cta.glow {
+  box-shadow: 0 0 0 0 #00d9ff88;
+  animation: navring 2.4s infinite;
+}
+@keyframes navring {
+  70% {
+    box-shadow: 0 0 0 14px #00d9ff00;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #00d9ff00;
+  }
+}
+@media (max-width: 1020px) {
+  .nav-cta {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-cta.glow {
+    animation: none;
+  }
+}
