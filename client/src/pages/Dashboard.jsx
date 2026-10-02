@@ -2,9 +2,13 @@
 import { useNavigate } from "react-router-dom";
 import MagicBento from "../components/MagicBento";
 import DashBar from "../components/DashBar";
-import { api, post, toastOk } from "../api";
+import { api, post } from "../api";
 
 const BG = "#0a0f12";
+
+// Customers can't call /api/admin/notifications (the admin router is behind requireAdmin).
+// Point this at a customer route that only returns SENT notifications.
+const NOTIFICATIONS_URL = "/api/notifications";
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "-";
@@ -20,10 +24,10 @@ export default function Dashboard() {
       .then((d) => (d.role === "admin" && !d.impersonating ? nav("/admin", { replace: true }) : setM(d)))
       .catch(() => nav("/login", { replace: true }));
 
-  // New versions are published by admin only; this just lists them.
+  // Notifications are created and sent by the admin; this only lists them.
   const loadUpdates = () =>
-    api("/api/versions")
-      .then((d) => setUpdates(d.versions || []))
+    api(NOTIFICATIONS_URL)
+      .then((d) => setUpdates(Array.isArray(d) ? d : d.notifications || []))
       .catch(() => setUpdates([]));
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function Dashboard() {
       label: "Notifications",
       title: updates.length ? `${updates.length} new` : "All caught up",
       description: updates.length
-        ? `Here are your new notifications. Jarvis v${updates[0].version} is available.`
+        ? `Here are your new notifications. Latest: ${updates[0].title || "New message"}`
         : "Here are your new notifications. Nothing new right now.",
       extra: updates.length ? (
         <button className="primary" onClick={() => setOpen(true)}>View notifications</button>
@@ -159,25 +163,29 @@ export default function Dashboard() {
                 )}
                 {updates.map((u) => (
                   <div
-                    key={u.version}
+                    key={u.id || u._id}
                     style={{ padding: 12, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
                   >
-                    <div style={{ fontWeight: 600 }}>New version: Jarvis v{u.version}</div>
-                    <div className="muted" style={{ fontSize: 13, margin: "2px 0 10px" }}>
-                      Released {fmtDate(u.released_at)}
+                    <div style={{ fontWeight: 600 }}>{u.title}</div>
+                    <div className="muted" style={{ fontSize: 13, margin: "2px 0 8px" }}>
+                      {fmtDate(u.sent_at || u.created_at)}
                     </div>
-                    <a
-                      className="btn primary"
-                      href={u.downloaded ? undefined : u.link}
-                      onClick={(e) => {
-                        if (u.downloaded) return e.preventDefault();
-                        toastOk("Download started.");
-                        setTimeout(loadUpdates, 2500);
-                      }}
-                      style={u.downloaded ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" } : undefined}
-                    >
-                      {u.downloaded ? "Downloaded" : "Download"}
-                    </a>
+                    {(u.message || u.body) && (
+                      <p style={{ margin: "0 0 10px", fontSize: 14 }}>{u.message || u.body}</p>
+                    )}
+                    {u.link && (
+                      <a
+                        className="btn primary"
+                        href={u.downloaded ? undefined : u.link}
+                        onClick={(e) => {
+                          if (u.downloaded) return e.preventDefault();
+                          setTimeout(loadUpdates, 2500);
+                        }}
+                        style={u.downloaded ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" } : undefined}
+                      >
+                        {u.downloaded ? "Downloaded" : "Download"}
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
