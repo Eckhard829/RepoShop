@@ -5,9 +5,10 @@ import DashBar from "../components/DashBar";
 import { api, post } from "../api";
 
 const BG = "#0a0f12";
+const ACCENT = "#00d9ff";
+const SEEN_KEY = "jarvis_login_popup_seen";
 
-// Customers can't call /api/admin/notifications (the admin router is behind requireAdmin).
-// Point this at a customer route that only returns SENT notifications.
+// Customer route that returns only SENT notifications.
 const NOTIFICATIONS_URL = "/api/me/notifications";
 
 const fmtDate = (d) =>
@@ -19,11 +20,47 @@ const fmtDate = (d) =>
       })
     : "-";
 
+const disabledStyle = { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" };
+
+function NotificationItem({ u, onDownloaded }) {
+  return (
+    <div
+      style={{
+        padding: 14,
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 10,
+      }}
+    >
+      <div style={{ fontWeight: 600 }}>{u.title}</div>
+      <div className="muted" style={{ fontSize: 13, margin: "2px 0 8px" }}>
+        {fmtDate(u.sent_at || u.created_at)}
+      </div>
+      {(u.message || u.body) && (
+        <p style={{ margin: "0 0 10px", fontSize: 14 }}>{u.message || u.body}</p>
+      )}
+      {u.link && (
+        <a
+          className="btn primary"
+          href={u.downloaded ? undefined : u.link}
+          onClick={(e) => {
+            if (u.downloaded) return e.preventDefault();
+            setTimeout(onDownloaded, 2500);
+          }}
+          style={u.downloaded ? disabledStyle : undefined}
+        >
+          {u.downloaded ? "Downloaded" : "Download"}
+        </a>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const nav = useNavigate();
   const [m, setM] = useState(null);
   const [updates, setUpdates] = useState([]);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false); // side drawer
+  const [showPopup, setShowPopup] = useState(false); // login popup
 
   const load = () =>
     api("/api/me")
@@ -43,6 +80,29 @@ export default function Dashboard() {
   useEffect(() => {
     load();
     loadUpdates();
+  }, []);
+
+  // Popup once per login session, only if there is something to show.
+  useEffect(() => {
+    if (!m || m.impersonating || !updates.length) return;
+    try {
+      if (sessionStorage.getItem(SEEN_KEY)) return;
+      sessionStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      /* storage blocked: still show the popup */
+    }
+    setShowPopup(true);
+  }, [m, updates]);
+
+  // Esc closes whatever is open.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      setShowPopup(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   if (!m)
@@ -81,11 +141,7 @@ export default function Dashboard() {
             if (m.downloaded || !m.link) return e.preventDefault();
             setTimeout(load, 2500);
           }}
-          style={
-            m.downloaded || !m.link
-              ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" }
-              : undefined
-          }
+          style={m.downloaded || !m.link ? disabledStyle : undefined}
         >
           {m.downloaded ? "Downloaded" : "Download Jarvis"}
         </a>
@@ -98,13 +154,26 @@ export default function Dashboard() {
       description: updates.length
         ? `Here are your new notifications. Latest: ${updates[0].title || "New message"}`
         : "Here are your new notifications. Nothing new right now.",
-      extra: updates.length ? (
+      extra: (
         <button className="primary" onClick={() => setOpen(true)}>
           View notifications
         </button>
-      ) : undefined,
+      ),
     },
   ];
+
+  const closeBtn = {
+    width: 40,
+    height: 40,
+    display: "grid",
+    placeItems: "center",
+    background: "transparent",
+    color: "inherit",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 18,
+  };
 
   return (
     <>
@@ -125,138 +194,151 @@ export default function Dashboard() {
         )}
         <h1 className="dtitle">Your dashboard</h1>
 
-        <div>
-          {/* Main column (leaves room for the fixed panel when it is open) */}
-          <div
-            style={{
-              minWidth: 0,
-              marginRight: open ? 340 : 56,
-              transition: "margin .2s",
-            }}
-          >
-            <MagicBento
-              cards={cards}
-              textAutoHide={false}
-              enableStars
-              enableSpotlight
-              enableBorderGlow
-              enableTilt={false}
-              enableMagnetism={false}
-              clickEffect
-              spotlightRadius={400}
-              particleCount={12}
-              glowColor="0, 217, 255"
-            />
-          </div>
+        {/* Blocks never resize: the drawer overlays the page. */}
+        <MagicBento
+          cards={cards}
+          textAutoHide={false}
+          enableStars
+          enableSpotlight
+          enableBorderGlow
+          enableTilt={false}
+          enableMagnetism={false}
+          clickEffect
+          spotlightRadius={400}
+          particleCount={12}
+          glowColor="0, 217, 255"
+        />
+      </div>
 
-          {/* Right-side collapsible menu */}
+      {/* Edge tab to reopen the drawer */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Open notifications"
+          style={{
+            position: "fixed",
+            top: 96,
+            right: 0,
+            zIndex: 30,
+            padding: "10px 14px",
+            background: BG,
+            color: "inherit",
+            border: "1px solid rgba(0, 217, 255, 0.25)",
+            borderRight: 0,
+            borderRadius: "10px 0 0 10px",
+            cursor: "pointer",
+            font: "inherit",
+            fontWeight: 600,
+          }}
+        >
+          Notifications{updates.length > 0 ? ` (${updates.length})` : ""}
+        </button>
+      )}
+
+      {/* Side drawer (fixed 420px, same size every time) */}
+      {open && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.55)" }}
+          />
           <aside
+            role="dialog"
+            aria-label="Notifications"
             style={{
               position: "fixed",
-              top: 72,
+              top: 0,
               right: 0,
-              zIndex: 20,
-              width: open ? 320 : 48,
-              maxHeight: "calc(100vh - 88px)",
-              overflowY: "auto",
+              bottom: 0,
+              zIndex: 41,
+              width: 420,
+              maxWidth: "100vw",
+              display: "flex",
+              flexDirection: "column",
               background: BG,
-              border: "1px solid rgba(0, 217, 255, 0.25)",
-              borderRight: 0,
-              borderRadius: "12px 0 0 12px",
-              transition: "width .2s",
+              borderLeft: "1px solid rgba(0, 217, 255, 0.25)",
             }}
           >
-            <button
-              onClick={() => setOpen(!open)}
-              aria-expanded={open}
+            <div
               style={{
-                width: "100%",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: 12,
-                padding: "14px 16px",
-                background: "transparent",
-                color: "inherit",
-                border: 0,
-                cursor: "pointer",
-                font: "inherit",
-                fontWeight: 600,
+                padding: "20px 20px",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              {open && (
-                <span>
-                  Notifications
-                  {updates.length > 0 ? ` (${updates.length})` : ""}
-                </span>
+              <h2 style={{ margin: 0, fontSize: 20 }}>Notifications</h2>
+              <button onClick={() => setOpen(false)} aria-label="Close notifications" style={closeBtn}>
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 12, alignContent: "start" }}>
+              {updates.length === 0 && (
+                <p className="muted" style={{ margin: 0 }}>No notifications yet.</p>
               )}
-              <span
-                aria-hidden
-                style={{
-                  transform: open ? "none" : "rotate(180deg)",
-                  transition: "transform .2s",
+              {updates.map((u) => (
+                <NotificationItem key={u.id || u._id} u={u} onDownloaded={loadUpdates} />
+              ))}
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Login popup */}
+      {showPopup && (
+        <div
+          onClick={() => setShowPopup(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+            background: "rgba(0,0,0,0.6)",
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="New notifications"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 440,
+              maxWidth: "100%",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+              background: BG,
+              border: `1px solid ${ACCENT}40`,
+              borderRadius: 14,
+            }}
+          >
+            <div style={{ padding: "20px 20px 12px" }}>
+              <h2 style={{ margin: 0, fontSize: 20 }}>
+                You have {updates.length} new notification{updates.length === 1 ? "" : "s"}
+              </h2>
+            </div>
+            <div style={{ padding: "0 20px", overflowY: "auto", display: "grid", gap: 12 }}>
+              {updates.slice(0, 3).map((u) => (
+                <NotificationItem key={u.id || u._id} u={u} onDownloaded={loadUpdates} />
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: 20 }}>
+              <button onClick={() => setShowPopup(false)}>Close</button>
+              <button
+                className="primary"
+                onClick={() => {
+                  setShowPopup(false);
+                  setOpen(true);
                 }}
               >
-                ›
-              </span>
-            </button>
-
-            {open && (
-              <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
-                {updates.length === 0 && (
-                  <p className="muted" style={{ margin: 0 }}>
-                    No new notifications.
-                  </p>
-                )}
-                {updates.map((u) => (
-                  <div
-                    key={u.id || u._id}
-                    style={{
-                      padding: 12,
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{u.title}</div>
-                    <div
-                      className="muted"
-                      style={{ fontSize: 13, margin: "2px 0 8px" }}
-                    >
-                      {fmtDate(u.sent_at || u.created_at)}
-                    </div>
-                    {(u.message || u.body) && (
-                      <p style={{ margin: "0 0 10px", fontSize: 14 }}>
-                        {u.message || u.body}
-                      </p>
-                    )}
-                    {u.link && (
-                      <a
-                        className="btn primary"
-                        href={u.downloaded ? undefined : u.link}
-                        onClick={(e) => {
-                          if (u.downloaded) return e.preventDefault();
-                          setTimeout(loadUpdates, 2500);
-                        }}
-                        style={
-                          u.downloaded
-                            ? {
-                                opacity: 0.4,
-                                pointerEvents: "none",
-                                cursor: "not-allowed",
-                              }
-                            : undefined
-                        }
-                      >
-                        {u.downloaded ? "Downloaded" : "Download"}
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </aside>
+                {updates.length > 3 ? "View all" : "Open panel"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
