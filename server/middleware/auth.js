@@ -1,9 +1,9 @@
-const { passport } = require("./passport");
+﻿const { passport } = require('./passport');
 
 function requireAuth(req, res, next) {
-  passport.authenticate("jwt", { session: false }, (err, user) => {
+  passport.authenticate('jwt', { session: false }, (err, user) => {
     if (err) return next(err);
-    if (!user) return res.status(401).json({ error: "Please log in" });
+    if (!user) return res.status(401).json({ error: 'Please log in' });
     req.user = user;
     req.imp = user.imp || null;
     next();
@@ -13,7 +13,7 @@ function requireAuth(req, res, next) {
 function requireRole(...roles) {
   return async function (req, res, next) {
     try {
-      const { userById } = require("../models/user");
+      const { userById } = require('../models/user');
       const id = req.imp || req.user?.id;
       if (!id) return res.sendStatus(401);
       const u = (await userById(id)).rows[0];
@@ -26,6 +26,6 @@ function requireRole(...roles) {
   };
 }
 
-const requireAdmin = requireRole("admin");
+const requireAdmin = requireRole('admin');
 
 module.exports = { requireAuth, requireRole, requireAdmin };
