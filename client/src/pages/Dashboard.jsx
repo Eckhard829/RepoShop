@@ -68,6 +68,17 @@ export default function Dashboard() {
         </a>
       ),
     },
+    {
+      color: BG,
+      label: "Notifications",
+      title: updates.length ? `${updates.length} new` : "All caught up",
+      description: updates.length
+        ? `Here are your new notifications. Jarvis v${updates[0].version} is available.`
+        : "Here are your new notifications. Nothing new right now.",
+      extra: updates.length ? (
+        <button className="primary" onClick={() => setOpen(true)}>View notifications</button>
+      ) : undefined,
+    },
   ];
 
   return (
@@ -82,9 +93,9 @@ export default function Dashboard() {
         )}
         <h1 className="dtitle">Your dashboard</h1>
 
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* Main column */}
-          <div style={{ flex: "1 1 520px", minWidth: 0 }}>
+        <div>
+          {/* Main column (leaves room for the fixed panel when it is open) */}
+          <div style={{ minWidth: 0, marginRight: open ? 340 : 56, transition: "margin .2s" }}>
             <MagicBento
               cards={cards}
               textAutoHide={false}
@@ -103,12 +114,18 @@ export default function Dashboard() {
           {/* Right-side collapsible menu */}
           <aside
             style={{
-              flex: open ? "0 0 320px" : "0 0 auto",
-              width: open ? 320 : "auto",
+              position: "fixed",
+              top: 72,
+              right: 0,
+              zIndex: 20,
+              width: open ? 320 : 48,
+              maxHeight: "calc(100vh - 88px)",
+              overflowY: "auto",
               background: BG,
               border: "1px solid rgba(0, 217, 255, 0.25)",
-              borderRadius: 12,
-              overflow: "hidden",
+              borderRight: 0,
+              borderRadius: "12px 0 0 12px",
+              transition: "width .2s",
             }}
           >
             <button
@@ -129,8 +146,8 @@ export default function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              <span>New versions{updates.length > 0 ? ` (${updates.length})` : ""}</span>
-              <span aria-hidden style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .2s" }}>
+              {open && <span>Notifications{updates.length > 0 ? ` (${updates.length})` : ""}</span>}
+              <span aria-hidden style={{ transform: open ? "none" : "rotate(180deg)", transition: "transform .2s" }}>
                 ›
               </span>
             </button>
@@ -138,14 +155,14 @@ export default function Dashboard() {
             {open && (
               <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
                 {updates.length === 0 && (
-                  <p className="muted" style={{ margin: 0 }}>No new version yet. Updates appear here once released.</p>
+                  <p className="muted" style={{ margin: 0 }}>No new notifications.</p>
                 )}
                 {updates.map((u) => (
                   <div
                     key={u.version}
                     style={{ padding: 12, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
                   >
-                    <div style={{ fontWeight: 600 }}>Jarvis v{u.version}</div>
+                    <div style={{ fontWeight: 600 }}>New version: Jarvis v{u.version}</div>
                     <div className="muted" style={{ fontSize: 13, margin: "2px 0 10px" }}>
                       Released {fmtDate(u.released_at)}
                     </div>
