@@ -1,10 +1,10 @@
-// Edit these
+﻿// Edit these
 export const BRAND = 'RepoShop', PRICE = 'R499', EMAIL = 'support@yourdomain.com';
 
 // GET when there is no body, POST when there is one
 export async function api(url, body, method) {
   method = method || (body === undefined ? 'GET' : 'POST');
-  const opts = { method };
+  const opts = { method, credentials: 'include' };
   if (method !== 'GET') {
     opts.headers = { 'Content-Type': 'application/json' };
     opts.body = JSON.stringify(body || {});
