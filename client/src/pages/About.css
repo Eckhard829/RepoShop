@@ -1,0 +1,28 @@
+﻿/* About page specifics — shared rules live in PublicPage.css */
+
+.ab-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.2rem;
+}
+.ab-values .pp-card { padding: 1.3rem; }
+.ab-values .pp-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* vertical rhythm between sections */
+.ab-stack {
+  display: grid;
+  gap: 1.2rem;
+}

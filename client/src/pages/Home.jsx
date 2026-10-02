@@ -700,7 +700,6 @@ function CostGraph() {
 /* ---------- Page ---------- */
 const TABS = [
   ["Voice", "🎙 Talk to it"],
-  ["Music", "🎵 Play music"],
   ["Research", "🌐 Research"],
 ];
 const CARDS = [
@@ -883,7 +882,6 @@ export default function Home() {
         </div>
         <div className="rv">
           {tab === "Voice" && <VoiceScreen />}
-          {tab === "Music" && <MusicScreen />}
           {tab === "Research" && <ResearchScreen />}
         </div>
       </section>

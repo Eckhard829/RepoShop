@@ -1,0 +1,43 @@
+﻿/* Contact page specifics — shared rules live in PublicPage.css */
+
+.ct-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .ct-grid { grid-template-columns: 1fr; }
+}
+
+.ct-card {
+  padding: 1.6rem;
+  display: grid;
+  gap: 0.9rem;
+}
+.ct-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.ct-card .pp-meta { display: grid; gap: 0.2rem; }
+
+.ct-meta-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.ct-meta-list span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.ct-meta-list span b {
+  color: var(--accent);
+  font-weight: 500;
+}
