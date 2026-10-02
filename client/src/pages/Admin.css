@@ -349,10 +349,9 @@
 }
 .crow {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) minmax(
-      210px,
-      1.2fr
-    ) minmax(0, 2.6fr);
+  grid-template-columns:
+    minmax(220px, 2fr) minmax(150px, 1fr) minmax(230px, auto)
+    minmax(0, 2.6fr);
   gap: 1rem;
   align-items: center;
   padding: 0.75rem 1.2rem;
@@ -431,15 +430,20 @@
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
+  align-items: center;
 }
+
 .pill {
   font-style: normal;
   font-size: 0.72rem;
-  padding: 0.15rem 0.6rem;
+  line-height: 1;
+  padding: 0.35rem 0.7rem;
   border-radius: 99px;
   border: 1px solid var(--line);
   color: var(--muted);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 .pill.good {
   color: var(--accent);
