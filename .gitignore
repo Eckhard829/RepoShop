@@ -1,3 +1,24 @@
-node_modules
+@'
+# deps
+node_modules/
+
+# env
 .env
+.env.*
+!.env.example
+
+# builds
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+
+# local secrets / bridges
 php-bridge/api.php
+
+# OS
+.DS_Store
+Thumbs.db
+'@ | Set-Content -Path .gitignore -Encoding utf8

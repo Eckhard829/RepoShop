@@ -1,36 +1,107 @@
-import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { post } from '../api';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { post } from "../api";
 
-export default function Auth({ mode, session }) {
-  const up = mode === 'signup';
+export default function Auth({ mode = "login", session }) {
   const nav = useNavigate();
-  const [err, setErr] = useState('');
-  if (session) return <Navigate to="/dashboard" replace />;
+  const isLogin = mode === "login";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
-    const f = new FormData(e.target);
+    setErr("");
+    setBusy(true);
     try {
-      await post(up ? '/api/register' : '/api/login', { email: f.get('email'), password: f.get('password') });
-      nav('/dashboard');
-    } catch (x) { setErr(x.message); }
+      await post(isLogin ? "/api/login" : "/api/register", { email, password });
+      nav("/dashboard");
+    } catch (e) {
+      setErr(e.message || "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Already logged in? Kick them along.
+  if (session) {
+    return (
+      <div className="auth narrow">
+        <h2>You're already logged in</h2>
+        <p className="muted">Head to your dashboard to continue.</p>
+        <Link to="/dashboard" className="btn primary full">
+          Go to dashboard
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <div className="card auth">
-      <h2>{up ? 'Create your account' : 'Welcome back'}</h2>
+    <div className="auth narrow">
+      <h1 className="dtitle">{isLogin ? "Log in" : "Create account"}</h1>
+      <p className="muted">
+        {isLogin ? "Welcome back." : "Get instant access to the repo."}
+      </p>
+
       <form onSubmit={submit}>
         <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required autoComplete="email" />
-        <label htmlFor="password">Password{up ? ' (8+ characters)' : ''}</label>
-        <input id="password" name="password" type="password" required minLength={up ? 8 : 1}
-          autoComplete={up ? 'new-password' : 'current-password'} />
-        <p className="err" role="alert">{err}</p>
-        <button className="primary full">{up ? 'Sign up' : 'Log in'}</button>
+        <input
+          id="email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          required
+          minLength={8}
+          autoComplete={isLogin ? "current-password" : "new-password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <p className="err">{err}</p>
+
+        <button type="submit" className="primary full" disabled={busy}>
+          {busy ? "Please wait…" : isLogin ? "Log in" : "Sign up"}
+        </button>
       </form>
-      <p className="center">
-        {up ? <>Already have an account? <Link to="/login">Log in</Link></> : <>New here? <Link to="/signup">Create an account</Link></>}
+
+      <div
+        style={{
+          margin: "1.2rem 0",
+          textAlign: "center",
+          color: "var(--muted)",
+        }}
+      >
+        — or —
+      </div>
+
+      {/* OAuth — hits the backend, which redirects to Google, which comes back to /dashboard?oauth=ok */}
+      <a
+        href="/api/auth/google"
+        className="btn full"
+        style={{ display: "block", textAlign: "center" }}
+      >
+        Continue with Google
+      </a>
+
+      <p className="muted" style={{ marginTop: "1.5rem", textAlign: "center" }}>
+        {isLogin ? (
+          <>
+            No account? <Link to="/signup">Sign up</Link>
+          </>
+        ) : (
+          <>
+            Already have one? <Link to="/login">Log in</Link>
+          </>
+        )}
       </p>
     </div>
   );
