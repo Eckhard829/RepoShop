@@ -22,11 +22,11 @@
       const b = ev.target.closest('button'); if (!b) return;
       const { a, id } = b.dataset;
       if (a === 'verify') {
-        const v = await api('/api/admin/verify/' + id, undefined, 'GET');
+        const v = await api('/api/admin/verify/' + id);
         document.getElementById('msg').textContent = v.verified
           ? `Paid on ${v.paid_at}. Reference: ${v.ref} (cross-check in your Yoco portal).` : 'Not verified: ' + v.note;
-      } else if (a === 'impersonate') { await api('/api/admin/impersonate/' + id); location.href = '/dashboard'; }
-      else if (confirm('Are you sure?')) { await api(`/api/admin/${a}/${id}`); draw(); }
+      } else if (a === 'impersonate') { await post('/api/admin/impersonate/' + id); location.href = '/dashboard'; }
+      else if (confirm('Are you sure?')) { await post(`/api/admin/${a}/${id}`); draw(); }
     };
   }
   draw();

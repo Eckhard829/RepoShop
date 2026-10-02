@@ -2,15 +2,25 @@
 const BRAND = 'RepoShop', EMAIL = 'support@yourdomain.com';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// GET when there is no body, POST when there is one. Pass a method to override.
 async function api(url, body, method) {
-  const r = await fetch(url, body === undefined && !method ? {} :
-    { method: method || 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  method = method || (body === undefined ? 'GET' : 'POST');
+  const opts = { method };
+  if (method !== 'GET') {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body || {});
+  }
+  const r = await fetch(url, opts);
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'Request failed');
   return j;
 }
+// Use for POST routes that need no data (logout, checkout, stop, etc.)
+const post = (url, body = {}) => api(url, body, 'POST');
+
 async function logout() {
-  try { await api('/api/logout'); } catch {}
+  try { await post('/api/logout'); } catch {}
   location.href = '/';
 }
 // Public site header + footer (only on pages that have #header / #footer; dashboards don't)

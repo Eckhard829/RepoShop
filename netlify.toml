@@ -1,0 +1,14 @@
+[build]
+  publish = "public"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://reposhop-iwsr.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/download/*"
+  to = "https://reposhop-iwsr.onrender.com/download/:splat"
+  status = 200
+  force = true

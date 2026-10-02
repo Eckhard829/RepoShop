@@ -3,6 +3,7 @@ const express = require('express'), cookie = require('cookie-parser'), bcrypt = 
 const jwt = require('jsonwebtoken'), crypto = require('crypto'), { spawn } = require('child_process');
 const rateLimit = require('express-rate-limit');
 const E = process.env, app = express();
+app.set('trust proxy', 1);
 
 // ---- Talk to MySQL ONLY through the PHP file ----
 async function db(q, p = []) {

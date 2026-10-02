@@ -17,10 +17,10 @@
 
   app.innerHTML = (m.impersonating ? `<div class="imp"><span>Viewing as ${esc(m.email)}</span><button id="stop">Back to admin</button></div>` : '')
     + `<div class="dash"><h1>Your dashboard</h1><div class="card">${box}<p class="err" id="err"></p></div></div>`;
-  if (m.impersonating) document.getElementById('stop').onclick = async () => { await api('/api/admin/stop'); location.href = '/admin'; };
+  if (m.impersonating) document.getElementById('stop').onclick = async () => { await post('/api/admin/stop'); location.href = '/admin'; };
   const buy = document.getElementById('buy');
   if (buy) buy.onclick = async () => {
-    try { location.href = (await api('/api/checkout')).url; } catch (x) { document.getElementById('err').textContent = x.message; }
+    try { location.href = (await post('/api/checkout')).url; } catch (x) { document.getElementById('err').textContent = x.message; }
   };
   const dl = document.getElementById('dl');
   if (dl) dl.onclick = () => setTimeout(() => location.reload(), 2500);
