@@ -8,10 +8,16 @@ const BG = "#0a0f12";
 
 // Customers can't call /api/admin/notifications (the admin router is behind requireAdmin).
 // Point this at a customer route that only returns SENT notifications.
-const NOTIFICATIONS_URL = "/api/notifications";
+const NOTIFICATIONS_URL = "/api/me/notifications";
 
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "-";
+  d
+    ? new Date(d).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "-";
 
 export default function Dashboard() {
   const nav = useNavigate();
@@ -21,7 +27,11 @@ export default function Dashboard() {
 
   const load = () =>
     api("/api/me")
-      .then((d) => (d.role === "admin" && !d.impersonating ? nav("/admin", { replace: true }) : setM(d)))
+      .then((d) =>
+        d.role === "admin" && !d.impersonating
+          ? nav("/admin", { replace: true })
+          : setM(d),
+      )
       .catch(() => nav("/login", { replace: true }));
 
   // Notifications are created and sent by the admin; this only lists them.
@@ -35,7 +45,12 @@ export default function Dashboard() {
     loadUpdates();
   }, []);
 
-  if (!m) return <div className="dpage"><p className="muted">Loading...</p></div>;
+  if (!m)
+    return (
+      <div className="dpage">
+        <p className="muted">Loading...</p>
+      </div>
+    );
 
   const cards = [
     {
@@ -66,7 +81,11 @@ export default function Dashboard() {
             if (m.downloaded || !m.link) return e.preventDefault();
             setTimeout(load, 2500);
           }}
-          style={m.downloaded || !m.link ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" } : undefined}
+          style={
+            m.downloaded || !m.link
+              ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" }
+              : undefined
+          }
         >
           {m.downloaded ? "Downloaded" : "Download Jarvis"}
         </a>
@@ -80,7 +99,9 @@ export default function Dashboard() {
         ? `Here are your new notifications. Latest: ${updates[0].title || "New message"}`
         : "Here are your new notifications. Nothing new right now.",
       extra: updates.length ? (
-        <button className="primary" onClick={() => setOpen(true)}>View notifications</button>
+        <button className="primary" onClick={() => setOpen(true)}>
+          View notifications
+        </button>
       ) : undefined,
     },
   ];
@@ -92,14 +113,27 @@ export default function Dashboard() {
         {m.impersonating && (
           <div className="imp">
             <span>Viewing as {m.email}</span>
-            <button onClick={async () => { await post("/api/admin/stop"); nav("/admin"); }}>Back to admin</button>
+            <button
+              onClick={async () => {
+                await post("/api/admin/stop");
+                nav("/admin");
+              }}
+            >
+              Back to admin
+            </button>
           </div>
         )}
         <h1 className="dtitle">Your dashboard</h1>
 
         <div>
           {/* Main column (leaves room for the fixed panel when it is open) */}
-          <div style={{ minWidth: 0, marginRight: open ? 340 : 56, transition: "margin .2s" }}>
+          <div
+            style={{
+              minWidth: 0,
+              marginRight: open ? 340 : 56,
+              transition: "margin .2s",
+            }}
+          >
             <MagicBento
               cards={cards}
               textAutoHide={false}
@@ -150,8 +184,19 @@ export default function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              {open && <span>Notifications{updates.length > 0 ? ` (${updates.length})` : ""}</span>}
-              <span aria-hidden style={{ transform: open ? "none" : "rotate(180deg)", transition: "transform .2s" }}>
+              {open && (
+                <span>
+                  Notifications
+                  {updates.length > 0 ? ` (${updates.length})` : ""}
+                </span>
+              )}
+              <span
+                aria-hidden
+                style={{
+                  transform: open ? "none" : "rotate(180deg)",
+                  transition: "transform .2s",
+                }}
+              >
                 ›
               </span>
             </button>
@@ -159,19 +204,30 @@ export default function Dashboard() {
             {open && (
               <div style={{ padding: "0 16px 16px", display: "grid", gap: 12 }}>
                 {updates.length === 0 && (
-                  <p className="muted" style={{ margin: 0 }}>No new notifications.</p>
+                  <p className="muted" style={{ margin: 0 }}>
+                    No new notifications.
+                  </p>
                 )}
                 {updates.map((u) => (
                   <div
                     key={u.id || u._id}
-                    style={{ padding: 12, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
+                    style={{
+                      padding: 12,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                    }}
                   >
                     <div style={{ fontWeight: 600 }}>{u.title}</div>
-                    <div className="muted" style={{ fontSize: 13, margin: "2px 0 8px" }}>
+                    <div
+                      className="muted"
+                      style={{ fontSize: 13, margin: "2px 0 8px" }}
+                    >
                       {fmtDate(u.sent_at || u.created_at)}
                     </div>
                     {(u.message || u.body) && (
-                      <p style={{ margin: "0 0 10px", fontSize: 14 }}>{u.message || u.body}</p>
+                      <p style={{ margin: "0 0 10px", fontSize: 14 }}>
+                        {u.message || u.body}
+                      </p>
                     )}
                     {u.link && (
                       <a
@@ -181,7 +237,15 @@ export default function Dashboard() {
                           if (u.downloaded) return e.preventDefault();
                           setTimeout(loadUpdates, 2500);
                         }}
-                        style={u.downloaded ? { opacity: 0.4, pointerEvents: "none", cursor: "not-allowed" } : undefined}
+                        style={
+                          u.downloaded
+                            ? {
+                                opacity: 0.4,
+                                pointerEvents: "none",
+                                cursor: "not-allowed",
+                              }
+                            : undefined
+                        }
                       >
                         {u.downloaded ? "Downloaded" : "Download"}
                       </a>
