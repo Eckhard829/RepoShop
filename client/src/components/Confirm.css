@@ -1,0 +1,68 @@
+﻿.confirm-back {
+  position: fixed;
+  inset: 0;
+  background: #000c;
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 500;
+  animation: confirm-back-in 0.15s ease-out;
+}
+@keyframes confirm-back-in {
+  from { opacity: 0; }
+}
+
+.confirm {
+  width: min(400px, 100%);
+  padding: 1.25rem 1.4rem 1.1rem;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 20px 60px #000c,
+    0 0 0 1px #00d9ff1a;
+  animation: confirm-pop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes confirm-pop {
+  from { transform: scale(0.96); opacity: 0; }
+}
+
+.confirm-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.confirm-message {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+.confirm-actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+
+/* Danger variant: primary styling but red */
+.confirm-actions button.primary.danger {
+  background: #ff5c6c;
+  border-color: #ff5c6c;
+  color: #000 !important;
+}
+.confirm-actions button.primary.danger:hover {
+  filter: brightness(1.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-back, .confirm { animation: none; }
+}

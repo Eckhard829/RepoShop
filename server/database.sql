@@ -1,6 +1,4 @@
 -- Import this in phpMyAdmin (Import tab), or paste into the SQL tab.
-CREATE DATABASE IF NOT EXISTS repo_shop CHARACTER SET utf8mb4;
-USE repo_shop;
 
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,

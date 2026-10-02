@@ -3,8 +3,6 @@
 -- Not idempotent — if re-run, MySQL 5.7+ will error "Duplicate column/key".
 -- That is intentional: migrations should be one-shot and tracked.
 
-USE repo_shop;
-
 -- 1. Allow OAuth-only users (no password) and provider accounts without an email.
 ALTER TABLE users
   MODIFY password_hash VARCHAR(100) NULL,
