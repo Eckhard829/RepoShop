@@ -1,10 +1,9 @@
-const { spawn, execFile } = require('child_process');
-const { promisify } = require('util');
-const { REPO_PATH, SITE_URL } = require('../config/env');
+const { spawn } = require('child_process');
+const { SITE_URL } = require('../config/env');
 const { purchaseOf, setDownloaded } = require('../models/purchase');
 const links = require('../services/downloadLinks');
 
-const run = promisify(execFile);
+const repo = require('../services/repoSource');
 
 // Errors before streaming send the browser back to the dashboard with a reason,
 // instead of leaving the customer on a bare text page.
@@ -21,10 +20,11 @@ async function download(req, res, next) {
     if (+p.downloaded) return back(res, 'used');
 
     // Make sure we can really deliver BEFORE burning the link.
+    let src;
     try {
-      await run('git', ['-C', REPO_PATH, 'rev-parse', '--verify', 'HEAD']);
+      src = await repo.ensure();
     } catch {
-      console.error('[download] repository not readable at REPO_PATH');
+      console.error('[download] product repository not available');
       return back(res, 'unavailable');
     }
 
@@ -35,7 +35,7 @@ async function download(req, res, next) {
       'Content-Type': 'application/zip',
       'Content-Disposition': 'attachment; filename="repository.zip"',
     });
-    const git = spawn('git', ['-C', REPO_PATH, 'archive', '--format=zip', 'HEAD']);
+    const git = spawn('git', ['-C', src.dir, 'archive', '--format=zip', src.ref]);
     let settled = false;
 
     const settle = async (ok) => {

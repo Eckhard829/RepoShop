@@ -25,6 +25,8 @@ module.exports = {
 
   // Download
   REPO_PATH: env.REPO_PATH,
+  REPO_URL: env.REPO_URL || '',
+  REPO_TOKEN: env.REPO_TOKEN || '',
   // How long a freshly minted download link stays valid (seconds).
   DOWNLOAD_LINK_TTL_SECONDS: parseInt(env.DOWNLOAD_LINK_TTL_SECONDS || '120', 10),
   // Failed/aborted downloads allowed before the customer must contact support.
