@@ -1,5 +1,6 @@
 ﻿const router = require('express').Router();
 const { requireAuth } = require('../middleware/auth');
+const { downloadLinkLimiter } = require('../middleware/rateLimit');
 const c = require('../controllers/meController');
 const n = require('../controllers/notificationController');
 
@@ -8,6 +9,7 @@ router.use(requireAuth);
 
 router.get('/', c.me);
 router.post('/checkout', c.checkout);
+router.post('/download-link', downloadLinkLimiter, c.createDownloadLink);
 
 // Notifications for the logged-in user
 router.get('/notifications', n.mine);

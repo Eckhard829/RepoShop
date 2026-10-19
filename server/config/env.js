@@ -25,6 +25,10 @@ module.exports = {
 
   // Download
   REPO_PATH: env.REPO_PATH,
+  // How long a freshly minted download link stays valid (seconds).
+  DOWNLOAD_LINK_TTL_SECONDS: parseInt(env.DOWNLOAD_LINK_TTL_SECONDS || '120', 10),
+  // Failed/aborted downloads allowed before the customer must contact support.
+  MAX_FAILED_DOWNLOADS: parseInt(env.MAX_FAILED_DOWNLOADS || '3', 10),
 
   // OAuth
   GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,

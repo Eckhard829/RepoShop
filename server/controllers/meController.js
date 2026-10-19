@@ -1,31 +1,38 @@
-const crypto = require('crypto');
 const { PRICE_CENTS, SITE_URL, YOCO_SECRET_KEY } = require('../config/env');
-const { sha256 } = require('../config/constants');
 const { purchaseOf } = require('../models/purchase');
-const { newToken, clearTokens } = require('../models/token');
 const { newCheckout } = require('../models/checkout');
+const links = require('../services/downloadLinks');
 
-// Customer dashboard data. A NEW scrambled link is generated on every call.
+// Customer dashboard data. No download link lives here: links are minted on demand
+// (POST /api/me/download-link) so a page refresh never hands out or kills a link.
 async function me(req, res) {
   const p = await purchaseOf(req.user.id);
   const paid = !!(p && +p.paid);
   const downloaded = !!(p && +p.downloaded);
-  let link = null;
-  if (paid && !downloaded && !req.imp) {
-    // admins never burn the customer's link
-    const t = crypto.randomBytes(32).toString('hex');
-    await clearTokens(req.user.id); // old links die
-    await newToken(req.user.id, sha256(t));
-    link = '/download/' + t;
-  }
   res.json({
     email: req.user.email,
     role: req.user.role,
     impersonating: !!req.imp,
     paid,
     downloaded,
-    link,
+    // The Download button shows only while this is true:
+    // paid, not yet downloaded, and not an admin viewing the account.
+    canDownload: paid && !downloaded && !req.imp,
   });
+}
+
+// Mint a fresh, scrambled, single-use download link for the logged-in customer.
+async function createDownloadLink(req, res, next) {
+  try {
+    if (req.imp) return res.status(403).json({ error: 'Not available while viewing as admin' });
+    const p = await purchaseOf(req.user.id);
+    if (!p || !+p.paid) return res.status(403).json({ error: 'Purchase required' });
+    if (+p.downloaded) return res.status(409).json({ error: 'Already downloaded' });
+    res.json(await links.issue(req.user.id));
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
+    next(e);
+  }
 }
 
 async function checkout(req, res) {
@@ -53,4 +60,4 @@ async function checkout(req, res) {
   res.json({ url: c.redirectUrl });
 }
 
-module.exports = { me, checkout };
+module.exports = { me, createDownloadLink, checkout };

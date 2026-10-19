@@ -29,12 +29,19 @@ CREATE TABLE checkouts (
 );
 
 -- Only a SHA-256 hash of each link token is stored, never the token itself
+-- used=0 is a LIVE link. Claiming it flips used=1 (atomic, one winner).
+-- outcome: pending (live or in flight) -> completed | failed, or revoked (replaced/reset).
 CREATE TABLE download_tokens (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   token_hash CHAR(64) NOT NULL UNIQUE,
   used TINYINT(1) NOT NULL DEFAULT 0,
+  outcome ENUM('pending','completed','failed','revoked') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   expires_at DATETIME NOT NULL,
+  claimed_at DATETIME NULL,
+  claimed_ip VARCHAR(45) NULL,
+  KEY idx_user_state (user_id, used, outcome),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

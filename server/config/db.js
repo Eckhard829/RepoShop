@@ -26,9 +26,19 @@ const QUERIES = {
   markPaid:         `INSERT INTO purchases(user_id,payment_ref,paid,paid_at)
                      VALUES(?,?,1,NOW())
                      ON DUPLICATE KEY UPDATE paid=1, paid_at=NOW(), payment_ref=VALUES(payment_ref)`,
-  clearTokens:      'DELETE FROM download_tokens WHERE user_id=?',
-  newToken:         'INSERT INTO download_tokens(user_id,token_hash,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL 15 MINUTE))',
-  useToken:         'UPDATE download_tokens SET used=1 WHERE user_id=? AND token_hash=? AND used=0 AND expires_at>NOW()',
+
+  // ---- Download-link scrambler (see services/downloadLinks.js) ----
+  // A token is LIVE while used=0. Claiming it flips used=1 (atomic, one winner).
+  // outcome then records how the delivery ended: pending -> completed | failed.
+  // Rotated-out or admin-reset tokens are marked revoked.
+  newToken:         'INSERT INTO download_tokens(user_id,token_hash,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL ? SECOND))',
+  revokeLiveTokens: "UPDATE download_tokens SET used=1, outcome='revoked' WHERE user_id=? AND used=0",
+  revokeOlderTokens: "UPDATE download_tokens SET used=1, outcome='revoked' WHERE user_id=? AND used=0 AND id<?",
+  claimToken:       'UPDATE download_tokens SET used=1, claimed_at=NOW(), claimed_ip=? WHERE user_id=? AND token_hash=? AND used=0 AND expires_at>NOW()',
+  finishToken:      "UPDATE download_tokens SET outcome=? WHERE user_id=? AND token_hash=? AND used=1 AND outcome='pending'",
+  countFailedTokens:"SELECT COUNT(*) AS n FROM download_tokens WHERE user_id=? AND outcome='failed'",
+  resetTokens:      "UPDATE download_tokens SET used=1, outcome='revoked' WHERE user_id=? AND (used=0 OR outcome IN ('failed','pending'))",
+  purgeOldTokens:   "DELETE FROM download_tokens WHERE created_at < (NOW() - INTERVAL 30 DAY) AND outcome <> 'completed'",
   setDownloaded:    'UPDATE purchases SET downloaded=1, downloaded_at=NOW() WHERE user_id=? AND paid=1',
   resetDownload:    'UPDATE purchases SET downloaded=0, downloaded_at=NULL WHERE user_id=?',
 

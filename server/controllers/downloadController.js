@@ -1,24 +1,73 @@
-const { spawn } = require('child_process');
-const { REPO_PATH } = require('../config/env');
-const { sha256 } = require('../config/constants');
+const { spawn, execFile } = require('child_process');
+const { promisify } = require('util');
+const { REPO_PATH, SITE_URL } = require('../config/env');
 const { purchaseOf, setDownloaded } = require('../models/purchase');
-const { useToken } = require('../models/token');
+const links = require('../services/downloadLinks');
 
-// One-time download: streams the repo straight out of git
-async function download(req, res) {
-  if (req.imp) return res.status(403).send('Not available while impersonating');
-  const p = await purchaseOf(req.user.id);
-  if (!p || !+p.paid || +p.downloaded) return res.status(403).send('Not available');
-  const used = await useToken(req.user.id, sha256(req.params.t)); // atomic: only 1 request can win
-  if (!used.affected) return res.status(410).send('Link invalid or already used');
-  await setDownloaded(req.user.id); // flag flips -> button disappears
-  res.set({
-    'Content-Type': 'application/zip',
-    'Content-Disposition': 'attachment; filename="repository.zip"',
-  });
-  const g = spawn('git', ['-C', REPO_PATH, 'archive', '--format=zip', 'HEAD']);
-  g.stdout.pipe(res);
-  g.on('error', () => res.end());
+const run = promisify(execFile);
+
+// Errors before streaming send the browser back to the dashboard with a reason,
+// instead of leaving the customer on a bare text page.
+const back = (res, reason) => res.redirect(302, `${SITE_URL || ''}/dashboard?dl=${reason}`);
+
+// GET /download/:t - one-time download. Streams `git archive` straight to the customer.
+async function download(req, res, next) {
+  try {
+    res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+    if (req.imp) return back(res, 'denied'); // admins never burn a customer's link
+
+    const p = await purchaseOf(req.user.id);
+    if (!p || !+p.paid) return back(res, 'denied');
+    if (+p.downloaded) return back(res, 'used');
+
+    // Make sure we can really deliver BEFORE burning the link.
+    try {
+      await run('git', ['-C', REPO_PATH, 'rev-parse', '--verify', 'HEAD']);
+    } catch {
+      console.error('[download] repository not readable at REPO_PATH');
+      return back(res, 'unavailable');
+    }
+
+    const hash = await links.claim(req.user.id, req.params.t, req.ip);
+    if (!hash) return back(res, 'expired'); // used, expired, replaced, or not yours
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="repository.zip"',
+    });
+    const git = spawn('git', ['-C', REPO_PATH, 'archive', '--format=zip', 'HEAD']);
+    let settled = false;
+
+    const settle = async (ok) => {
+      if (settled) return;
+      settled = true;
+      if (ok) {
+        // Record success first, then close the response.
+        try {
+          await links.complete(req.user.id, hash);
+          await setDownloaded(req.user.id); // flag flips -> the button disappears
+        } catch (e) {
+          console.error('[download] could not record completed download', e);
+        }
+        res.end();
+      } else {
+        await links.fail(req.user.id, hash).catch((e) => console.error('[download]', e));
+        res.destroy(); // browser shows a failed download, never a truncated "success"
+      }
+    };
+
+    git.stdout.pipe(res, { end: false });
+    git.on('error', () => settle(false));
+    git.on('close', (code) => settle(code === 0));
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        git.kill();
+        settle(false); // customer cancelled or lost connection
+      }
+    });
+  } catch (e) {
+    next(e);
+  }
 }
 
 module.exports = { download };

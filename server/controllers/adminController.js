@@ -1,6 +1,7 @@
 const { allClients } = require('../models/user');
 const { purchaseOf, markPaid, resetDownload } = require('../models/purchase');
 const { audit } = require('../models/audit');
+const links = require('../services/downloadLinks');
 const { setCookie } = require('./authController');
 
 async function clients(req, res) {
@@ -26,6 +27,7 @@ async function verify(req, res) {
 
 async function resetDownloadCtrl(req, res) {
   await resetDownload(req.params.id);
+  await links.reset(req.params.id); // revoke old links + clear the failed-download count
   await audit(req.adminId, req.params.id, 'reset');
   res.json({ ok: 1 });
 }

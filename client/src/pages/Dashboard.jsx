@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import MagicBento from "../components/MagicBento";
 import DashBar from "../components/DashBar";
-import { api, post } from "../api";
+import { api, post, toastErr, toastInfo } from "../api";
 
 const BG = "#0a0f12";
 const ACCENT = "#00d9ff";
@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [updates, setUpdates] = useState([]);
   const [open, setOpen] = useState(false); // side drawer
   const [showPopup, setShowPopup] = useState(false); // login popup
+  const [busy, setBusy] = useState(false); // preparing a download link
 
   const load = () =>
     api("/api/me")
@@ -80,7 +81,49 @@ export default function Dashboard() {
   useEffect(() => {
     load();
     loadUpdates();
+    // The server sends us back here with ?dl=<reason> when a download link is refused.
+    const q = new URLSearchParams(window.location.search);
+    const why = q.get("dl");
+    if (why) {
+      const msg = {
+        expired: "That download link has expired or was already used. Press Download for a fresh one.",
+        used: "This repository has already been downloaded.",
+        unavailable: "The download is temporarily unavailable. Please try again shortly.",
+        denied: "Download not available for this account.",
+      }[why];
+      if (msg) toastErr(msg);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
+
+  // Every click mints a brand-new single-use link, then goes straight to it.
+  const startDownload = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { url } = await post("/api/me/download-link");
+      toastInfo("Your download is starting...");
+      window.location.assign(url);
+      // The button disappears once the server records the download.
+      let tries = 0;
+      const t = setInterval(async () => {
+        tries += 1;
+        try {
+          const d = await api("/api/me");
+          if (d.downloaded) setM(d);
+          if (d.downloaded || tries > 40) {
+            clearInterval(t);
+            setBusy(false);
+          }
+        } catch {
+          clearInterval(t);
+          setBusy(false);
+        }
+      }, 3000);
+    } catch {
+      setBusy(false); // api() already showed the error toast
+    }
+  };
 
   // Popup once per login session, only if there is something to show.
   useEffect(() => {
@@ -128,23 +171,20 @@ export default function Dashboard() {
     {
       color: BG,
       label: "Download",
-      title: m.downloaded ? "Already downloaded" : "Ready to download",
+      title: m.downloaded ? "Already downloaded" : m.canDownload ? "Ready to download" : "Not available",
       description: m.downloaded
-        ? "Your download link has been used."
-        : "This link works once, for your account only.",
+        ? "Your download has been used."
+        : "Each download link is created for you, works once, and expires within minutes.",
       extra: (
-        <a
+        <button
+          type="button"
           className="btn primary"
-          href={m.downloaded || !m.link ? undefined : m.link}
-          aria-disabled={m.downloaded || !m.link}
-          onClick={(e) => {
-            if (m.downloaded || !m.link) return e.preventDefault();
-            setTimeout(load, 2500);
-          }}
-          style={m.downloaded || !m.link ? disabledStyle : undefined}
+          disabled={!m.canDownload || busy}
+          onClick={startDownload}
+          style={!m.canDownload || busy ? disabledStyle : undefined}
         >
-          {m.downloaded ? "Downloaded" : "Download Jarvis"}
-        </a>
+          {m.downloaded ? "Downloaded" : busy ? "Preparing..." : "Download Jarvis"}
+        </button>
       ),
     },
     {
